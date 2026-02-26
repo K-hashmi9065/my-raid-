@@ -1,12 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:go_router/go_router.dart';
-import '../../../../core/theme/app_theme.dart';
-import '../../../../core/router/app_routes.dart';
 import '../../providers/auth_provider.dart';
 import '../widgets/auth_text_field.dart';
 import '../widgets/gradient_button.dart';
 import '../../../../core/errors/failures.dart';
+import '../../../../core/theme/app_theme.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -70,30 +69,20 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
 
-    ref.listen(authStateProvider, (_, next) {
-      next.when(
-        data: (user) {
-          if (user != null) {
-            context.go(AppRoutes.home);
-          }
-        },
-        loading: () {},
-        error: (e, _) {
-          String msg = 'Registration failed. Please try again.';
-          if (e is NetworkFailure) {
-            msg = 'No internet connection';
-          }
-          if (e is ServerFailure) {
-            msg = e.message;
-          }
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Text(msg),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        },
-      );
+    ref.listen(authStateProvider, (previous, next) {
+      if (next.hasError) {
+        final error = next.error;
+        String msg = 'Action failed. Please try again.';
+        if (error is NetworkFailure) msg = 'No internet connection';
+        if (error is ServerFailure) msg = error.message;
+
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
     });
 
     return Scaffold(

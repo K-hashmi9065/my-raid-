@@ -56,33 +56,21 @@ class _LoginScreenState extends ConsumerState<LoginScreen>
     final authState = ref.watch(authStateProvider);
     final isLoading = authState.isLoading;
 
-    ref.listen(authStateProvider, (_, next) {
-      next.when(
-        data: (user) {
-          if (user != null) context.go(AppRoutes.home);
-        },
-        loading: () {},
-        error: (e, _) {
-          String msg = 'Login failed. Please try again.';
-          if (e is NetworkFailure) msg = 'No internet connection';
-          if (e is ServerFailure) msg = e.message;
-          if (e is AuthFailure) msg = 'Invalid credentials';
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(
-              content: Row(
-                children: [
-                  const Icon(Icons.error_outline, color: Colors.white),
-                  const SizedBox(width: 8),
-                  Expanded(child: Text(msg)),
-                ],
-              ),
-              backgroundColor: AppColors.error,
-            ),
-          );
-        },
-      );
-    });
+    ref.listen(authStateProvider, (previous, next) {
+      if (next is AsyncError) {
+        final error = next.error;
+        String msg = 'Authentication failed. Please try again.';
+        if (error is NetworkFailure) msg = 'No internet connection';
+        if (error is ServerFailure) msg = error.message;
 
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(msg),
+            backgroundColor: AppColors.error,
+          ),
+        );
+      }
+    });
     return Scaffold(
       body: FadeTransition(
         opacity: _fadeAnim,

@@ -12,27 +12,60 @@ import '../../features/settings/presentation/screens/settings_screen.dart';
 import '../../features/auth/providers/auth_provider.dart';
 import 'app_routes.dart';
 
+// Create a notifier that can be used as a refreshListenable for GoRouter
+class RouterNotifier extends ChangeNotifier {
+  final Ref _ref;
+
+  RouterNotifier(this._ref) {
+    // Watch auth state changes and notify the router
+    _ref.listen(
+      authStateProvider,
+      (previous, next) {
+        if (previous?.value?.id != next.value?.id ||
+            previous?.isLoading != next.isLoading) {
+          notifyListeners();
+        }
+      },
+    );
+  }
+}
+
+final routerNotifierProvider = Provider<RouterNotifier>((ref) {
+  return RouterNotifier(ref);
+});
+
 final _rootNavigatorKey = GlobalKey<NavigatorState>();
 
 final routerProvider = Provider<GoRouter>((ref) {
-  final authState = ref.watch(authStateProvider);
+  final notifier = ref.watch(routerNotifierProvider);
 
   return GoRouter(
     navigatorKey: _rootNavigatorKey,
     initialLocation: AppRoutes.splash,
+    refreshListenable: notifier,
     debugLogDiagnostics: true,
     redirect: (context, state) {
+      final authState = ref.read(authStateProvider);
+
+      // Handle loading state
+      if (authState.isLoading) {
+        return null; // Stay where we are while loading
+      }
+
       final isLoggedIn = authState.value != null;
       final isSplash = state.matchedLocation == AppRoutes.splash;
       final isAuthRoute = state.matchedLocation == AppRoutes.login ||
           state.matchedLocation == AppRoutes.register;
 
+      // If we are on Splash, don't redirect yet (let SplashScreen handle initial delay)
       if (isSplash) return null;
 
+      // Unauthenticated user trying to access protected route
       if (!isLoggedIn && !isAuthRoute) {
         return AppRoutes.login;
       }
 
+      // Authenticated user trying to access login/register
       if (isLoggedIn && isAuthRoute) {
         return AppRoutes.home;
       }
