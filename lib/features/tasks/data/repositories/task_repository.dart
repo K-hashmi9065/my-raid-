@@ -27,9 +27,15 @@ class TaskRepositoryImpl implements TaskRepository {
   @override
   Future<List<TaskModel>> getTasks(
       {int? userId, int page = 1, int limit = 10}) async {
+    // If no user is logged in or it's a new registration (mock ID 999),
+    // don't fetch dummy tasks from the global API. Return only local/cached tasks.
+    if (userId == null || userId == 999) {
+      return await getCachedTasks();
+    }
+
     try {
       final skip = (page - 1) * limit;
-      final endpoint = userId != null ? '/todos/user/$userId' : '/todos';
+      final endpoint = '/todos/user/$userId';
 
       final response = await _dio.get(
         endpoint,
@@ -57,6 +63,11 @@ class TaskRepositoryImpl implements TaskRepository {
       await cacheTask(merged);
       return merged;
     } on DioException catch (e) {
+      // If user ID is not found in dummyjson (mock user), just return cached tasks
+      if (e.response?.statusCode == 404) {
+        return await getCachedTasks();
+      }
+
       final cached = await getCachedTasks();
       if (cached.isNotEmpty) return cached;
       return _handleDioError(e);
