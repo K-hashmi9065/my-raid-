@@ -6,6 +6,7 @@ import '../widgets/auth_text_field.dart';
 import '../widgets/gradient_button.dart';
 import '../../../../core/errors/failures.dart';
 import '../../../../core/theme/app_theme.dart';
+import '../../../../core/router/app_routes.dart';
 
 class RegisterScreen extends ConsumerStatefulWidget {
   const RegisterScreen({super.key});
@@ -55,6 +56,10 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
     if (!_formKey.currentState!.validate()) {
       return;
     }
+
+    // Clear any previous snackbars
+    ScaffoldMessenger.of(context).hideCurrentSnackBar();
+
     await ref.read(authStateProvider.notifier).register(
           firstName: _firstNameCtrl.text.trim(),
           lastName: _lastNameCtrl.text.trim(),
@@ -62,6 +67,19 @@ class _RegisterScreenState extends ConsumerState<RegisterScreen>
           email: _emailCtrl.text.trim(),
           password: _passwordCtrl.text,
         );
+
+    // After registration, if the state is successful, the router should redirect.
+    // However, if it's stuck, we can force navigation or show a success message.
+    if (!mounted) return;
+
+    final authState = ref.read(authStateProvider);
+    if (authState.hasValue && authState.value != null && !authState.hasError) {
+      // Success! Navigation should be handled by the router redirect,
+      // but we can add a small delay and go manually if needed,
+      // or just trust the router if it's properly configured.
+      // Forcing navigation here ensures the user isn't stuck.
+      context.go(AppRoutes.home);
+    }
   }
 
   @override

@@ -21,10 +21,9 @@ class RouterNotifier extends ChangeNotifier {
     _ref.listen(
       authStateProvider,
       (previous, next) {
-        if (previous?.value?.id != next.value?.id ||
-            previous?.isLoading != next.isLoading) {
-          notifyListeners();
-        }
+        // Notify the router on any change to the auth state
+        // (loading, error, or data updates)
+        notifyListeners();
       },
     );
   }
